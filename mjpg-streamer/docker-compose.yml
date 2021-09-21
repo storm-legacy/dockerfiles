@@ -1,0 +1,16 @@
+version: '3'
+services:
+
+  mjpg-streamer:
+    build:
+      dockerfile: Dockerfile
+      context: .
+    container_name: mjpg-streamer
+    restart: unless-stopped
+    environment:                          # mjpg-streamer   
+      INPUT_ARGS: "-d /dev/video0 -l on"  # -i "input_uvc.so ${INPUT_ARGS}"
+      OUTPUT_ARGS: "-p 8090"              # -o "output_http.so -w /srv/www ${OUTPUT_ARGS}"
+    devices:
+      - "/dev/video0:/dev/video0"
+    ports:
+      - "8090:8090"
