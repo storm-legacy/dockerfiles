@@ -1,0 +1,33 @@
+volumes:
+  config: {}
+
+networks:
+  inet: {}
+
+services:
+  webui:
+    image: p3terx/ariang:latest
+    container_name: aria2-webui
+    restart: unless-stopped
+    networks:
+      inet: {}
+    ports:
+      - "6880:6880/tcp"
+    environment:
+      TZ: "${TZ:-Europe/Warsaw}"
+
+  aria2pro:
+    image: p3terx/aria2-pro:latest
+    container_name: aria2-pro
+    restart: unless-stopped
+    networks:
+      inet: {}
+    environment:
+      PUID: "${PUID:-1000}"
+      PGID: "${PGID:-1000}"
+      UMASK_SET: "022"
+      RPC_SECRET: "${RPC_SECRET:-123456789}"
+      TZ: "${TZ:-Europe/Warsaw}"
+    volumes:
+      - config:/config:rw
+      - ./Downloads:/downloads:rw
