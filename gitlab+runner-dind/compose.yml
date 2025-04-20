@@ -1,0 +1,69 @@
+x-extra-hosts: &x-extra-hosts
+  - "${TEST_GITLAB_DOMAIN}:172.30.0.10"
+  - "${TEST_REGISTRY_DOMAIN}:172.30.0.10"
+
+
+networks:
+  gitlab_inet:
+    ipam:
+      config:
+        - subnet: '172.30.0.0/16'
+          gateway: '172.30.0.1'
+
+
+services:
+  instance:
+    image: gitlab/gitlab-ce:17.10.4-ce.0
+    restart: unless-stopped
+    hostname: "${TEST_GITLAB_DOMAIN}"
+    shm_size: '512m'
+    stop_grace_period: '1m'
+    environment:
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url 'https://${TEST_GITLAB_DOMAIN}'
+        registry_external_url 'https://${TEST_REGISTRY_DOMAIN}'
+        letsencrypt['enable'] = false
+    networks:
+      gitlab_inet:
+        ipv4_address: 172.30.0.10
+    ports:
+      - '80:80/tcp'
+      - '443:443/tcp'
+      - '9022:22/tcp'
+    volumes:
+      - './gitlab_data/config:/etc/gitlab:rw'
+      - './gitlab_data/logs:/var/log/gitlab:rw'
+      - './gitlab_data/data:/var/opt/gitlab:rw'
+    extra_hosts: *x-extra-hosts
+
+
+  runner:
+    image: gitlab/gitlab-runner:alpine-v17.10.1
+    restart: unless-stopped
+    hostname: "gitlab-runner"
+    privileged: false
+    networks:
+      gitlab_inet:
+        ipv4_address: 172.30.0.15
+    volumes:
+      - "./runner_data:/etc/gitlab-runner:rw"
+    extra_hosts: *x-extra-hosts
+
+
+  dind:
+    image: docker:rc-dind
+    restart: always
+    hostname: "dind"
+    privileged: true
+    command:
+      - "--insecure-registry=${TEST_GITLAB_DOMAIN}"
+      - "--storage-driver=overlay2"
+    networks:
+      gitlab_inet:
+        ipv4_address: 172.30.0.20
+    environment:
+      DOCKER_TLS_CERTDIR: ""
+    volumes:
+      # - "./certs:/etc/ssl/docker:rw"
+      - "./dind_data:/var/lib/docker:rw"
+    extra_hosts: *x-extra-hosts
